@@ -1,0 +1,396 @@
+using System;
+using System.Windows.Forms;
+using System.Drawing;
+
+namespace Orion
+{
+	/// <summary>
+	/// Данный делегат обеспечивает динамическое 
+	/// "переопределение функции" вывода данных в 
+	/// ячейки dataGridView.
+	/// </summary>
+	/// <param name="e">Ссылка на параметры события 
+	/// DataGridViewCellValueEventArgs.</param>
+	public delegate void myDel(DataGridViewCellValueEventArgs e);
+
+	/// <summary>
+	/// Класс предназначен для быстрой настройки 
+	/// датагрида на вывод данных в нужном формате.
+	/// </summary>
+	public class DataGridViewVisualData : IDataGridViewInputData
+	{
+		#region Переменные
+
+		/// <summary>
+		/// Ссылка на самого себя.
+		/// </summary>
+		IDataGridViewInputData self = null;
+
+		/// <summary>
+		/// Используемый DataGridView.
+		/// </summary>
+		private DataGridView DGV;
+
+		/// <summary>
+		/// Минимальная высота строки в DataGridView.
+		/// </summary>
+		private int minHeight;
+
+		/// <summary>
+		/// Максимальная строка в DataGridView
+		/// </summary>
+		private int maxHeight;
+
+		/// <summary>
+		/// Число строк для DataGridView.
+		/// </summary>
+		private int dataLenght;
+
+		/// <summary>
+		/// Экземпляр класса-делегата, который принимает в 
+		/// себя динамический метод вывода данных.
+		/// </summary>
+		private myDel GeneraldelForm;
+
+		#endregion
+
+		/// <summary>
+		/// Конструктор.
+		/// </summary>
+		/// <param name="DGV">Ссылка на используемый DataGridView.</param>
+		/// <param name="minHeight">Минимальная высота строки DataGridView.</param>
+		/// <param name="maxHeight">Максимальная высота строки DataGridView.</param>
+		public DataGridViewVisualData(DataGridView DGV, int minHeight = 60, int maxHeight = 150)
+		{
+			// Ссылка на самого себя с приведением 
+			// к интерфейсному типу (upCast).
+			self = (IDataGridViewInputData)this;
+
+			// Получаем ссылку на используемый DataGridView.
+			this.DGV = DGV;
+
+			// Минимальное значение высоты строки DataGridView.
+			this.minHeight = minHeight;
+
+			// Максимальное значение высоты строки DataGridView.
+			this.maxHeight = maxHeight;
+		}
+
+		/// <summary>
+		/// Метод осуществляет обновление данных по максимальному 
+		/// числу строк по результатам запроса к БД.
+		/// </summary>
+		/// <param name="dataLenght">Максимальное число строк по 
+		/// результатам запроса к БД.</param>
+		public void UpdateLenght(int dataLenght)
+		{
+			// Максимальное число строк.
+			this.dataLenght = dataLenght;
+		}
+
+		/// <summary>
+		/// Добавляет 1 или указанное число строк, в
+		/// зависимости от количества полученных строк из БД.
+		/// </summary>
+		public void VariableOutPutData()
+		{
+			// Если число записей в запросе меньше, чем 10.
+			if (dataLenght < 25)
+			{
+				// Удаляем все строки из DataGridView.
+				DGV.Rows.Clear();
+
+				// Проверка на наличие полученных записей в результате запроса. 
+				// (Если записей 0, то не добавляем строк вообще).
+				if (dataLenght != 0)
+				{
+					// Добавляем сразу нужное число новых строк в DataGridView.
+					DGV.Rows.Add(dataLenght);
+				}
+			}
+			else
+			{
+				// Если строк в результате запроса 10 и более, то добавляем 1 строку, 
+				// а далее событие запроса новых значений из буфера добавит нужное число 
+				// строк автоматически.
+				DGV.Rows.Add(1);
+			}
+		}
+
+		/// <summary>
+		/// Метод осуществляет добавление стандартного 
+		/// обработчика для события CellFormatting.
+		/// </summary>
+		public void AddStandartFormattingCellsEvent()
+		{
+			DGV.CellFormatting += FormattingCells;
+		}
+
+		/// <summary>
+		/// Метод стандарного форматирования ячеек DataGridView.
+		/// </summary>
+		/// <param name="sender"></param>
+		/// <param name="e"></param>
+		private void FormattingCells(object sender, DataGridViewCellFormattingEventArgs e)
+		{
+			// Получаем ссылку на объект.
+			DataGridView DGV = sender as DataGridView;
+
+			if (e.RowIndex % 2 == 0)
+			{
+				// Закрашиваем все ячейки строки в серый цвет.
+				for (int i = 0; i < DGV.ColumnCount - 1; i++)
+					DGV.Rows[e.RowIndex].Cells[i].Style.BackColor = Color.LightGray;
+			}
+			else
+			{
+				// Закрашиваем все ячейки строки в белый цвет.
+				for (int i = 0; i < DGV.ColumnCount - 1; i++)
+					DGV.Rows[e.RowIndex].Cells[i].Style.BackColor = Color.White;
+			}
+
+			// Последняя колонка.
+			if (e.ColumnIndex == DGV.ColumnCount - 1)
+			{
+				DGV.Rows[e.RowIndex].Cells[e.ColumnIndex].Style.
+					BackColor = Color.PaleGoldenrod;
+			}
+		}
+
+     /// <summary>
+     /// Реализация ограничителя добавления новых строк в DataGridView.
+     /// </summary>
+     /// <param name="TotalRows">Максимальное число строк.</param>
+     /// <param name="MustBeRows">Необходимое число строк.</param>
+     void IDataGridViewInputData.DeleteEmptyRows(int TotalRows, int MustBeRows)
+     {
+         // Разница между текущим числом строк и должным.
+         int x = TotalRows - MustBeRows;
+
+         // Если разница не равна больше 0.
+         if (x > 0)
+         {
+             for (int i = 0; i < x; i++)
+             {
+                 // Удаляем столько строк, сколько получилось в разнице между текущим 
+                 // числом строк в датагриде и должным числом строк.
+                 DGV.Rows.RemoveAt(DGV.RowCount - 1);
+             }
+         }
+     }
+
+        /// <summary>
+        /// Реализация обработчика события изменения высоты строки 
+        /// для ограничения максимально и минимально допустимой.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        void IDataGridViewInputData.DataGridView1_RowHeightChanged(object sender,
+            DataGridViewRowEventArgs e)
+        {
+		   	    // Если высота строки меньше 
+			      // указанного числа пикселей.
+            if (e.Row.Height < minHeight)
+            {
+				        // Устанавливаем высоту строки в 
+				        // указанное число пикселей.
+                e.Row.Height = minHeight;
+
+                return;
+            }
+
+			// Если высота строки больше
+			// указанного числа пикселей.
+			if (e.Row.Height > maxHeight)
+            {
+				// Устанавливаем высоту строки 
+				// в указанное число пикселей.
+                e.Row.Height = maxHeight;
+            }
+        }
+
+        /// <summary>
+        /// Реализация обработчика события запроса необходимых 
+        /// значений для видимых ячеек датагрида.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        void IDataGridViewInputData.DataGridView1_CellValueNeeded(object sender,
+            DataGridViewCellValueEventArgs e)
+        {
+            try
+            {
+                // Если в полученных из БД данных есть 
+                // хотя бы 1 запись.
+                if (dataLenght > 0 && e.RowIndex < dataLenght)
+                {
+                    // Получаем ссылку на используемый DataGridView.
+                    DataGridView DGV = sender as DataGridView;
+
+                    //Если число строк меньше, чем число полученных записей в результате 
+                    // запроса в БД или если индекс строк меньше чем число строк.
+                    if (DGV.Rows.Count < dataLenght ||
+                        e.RowIndex < DGV.Rows.Count)
+                    {
+                        // Если индекс самой верхний ВИДИМОЙ строки датагрида с шагом в рассчитываемое 
+                        // число строк больше, чем число строк в датагриде на данный момент.
+                        if (DGV.FirstDisplayedScrollingRowIndex +
+                            Convert.ToInt16((double)DGV.Height / ((double)55 /
+                            ((double)55 / (double)minHeight))) > DGV.Rows.Count)
+                        {
+                            if (e.ColumnIndex == 0 && e.RowIndex < dataLenght &&
+                                DGV.RowCount < dataLenght)
+                            {
+                                // Добавляем 1 строку.
+                                DGV.Rows.Add(1);
+                            }
+                        }
+
+						            // Если индекс строки меньше числа 
+						            // строк, полученных из БД.
+                        if (e.RowIndex < dataLenght)
+                        {
+                            // Производим вывод информации по требованию (заполнение 
+                            // ячеек данной строки данными из БД).
+                            LogicalConclusionData(e);
+                        }
+                        else
+                        {
+							              //Если число строк в датагриде не 
+						       	        // равно число строк полученным из БД.
+                            if (DGV.Rows.Count > dataLenght)
+                            {
+                                // Производим удаление пустых лишних строк из датагрида.
+                                self.DeleteEmptyRows(DGV.Rows.Count, dataLenght);
+                            }
+                        }
+                    }
+
+					          // Если dataGridView1 содержит 
+					          // хотя бы 1 строку.
+                    if (DGV.RowCount > 0)
+                    {
+                        // Вызываем обработчик для настройки высоты строк.
+                        self.DataGridView1_RowHeightChanged(DGV,
+                            new DataGridViewRowEventArgs(DGV.Rows[e.RowIndex]));
+                    }
+                }
+            }
+            finally { }
+        }
+
+        /// <summary>
+        /// Метод отображения данных.
+        /// </summary>
+        /// <param name="e"></param>
+        public virtual void LogicalConclusionData(DataGridViewCellValueEventArgs e)
+        {
+            try
+            {
+                // Вызываем делегат.
+                GeneraldelForm.Invoke(e);
+            }
+            catch (NullReferenceException)
+            {
+                // Сообщение для разработчика о том, что он не передал 
+                // необходимый метод для делегата.
+                MessageBox.Show("Не реализован метод отображения данных!");
+
+                // Аварийный выход из программы.
+                Application.Exit();
+            }
+        }
+
+        /// <summary>
+        /// Метод выполняет инициализацию обработчиков 
+        /// событий для используемого датагрида.
+        /// </summary>
+        public void Initialize(myDel LogicalConclusionDataIN)
+        {
+            // Подключаем обработчик события запроса данных по видимым ячейкам.
+            DGV.CellValueNeeded += self.DataGridView1_CellValueNeeded;
+
+            // Подключаем обработчик изменения высоты строки.
+            DGV.RowHeightChanged += self.DataGridView1_RowHeightChanged;
+
+            // Инициализируем событией для делегата.
+            GeneraldelForm = LogicalConclusionDataIN;
+        }
+
+		/// <summary>
+		/// Метод осуществляет добавление/отключение обработчиков 
+		/// событий для выделения строки в датагриде.
+		/// </summary>
+		/// <param name="flag">Флаг зажатой клавиши "Ctrl".</param>
+		public void AddSelectRowEvent(bool flag)
+		{
+			if (flag)
+			{
+				// Добавляем обработчик нажимания клавиши "Ctrl".
+				DGV.KeyDown += DataGridView1_KeyDown;
+
+				// Добавляем обработчик отпускания клавиши "Ctrl".
+				DGV.KeyUp += DataGridView1_KeyUp;
+
+				// Добавляем событие клика по ячейкам датагрида.
+				DGV.CellClick += SelectRow;
+			}
+			else
+			{
+				// Отключаем обработчик нажимания клавиши "Ctrl".
+				DGV.KeyDown -= DataGridView1_KeyDown;
+
+				// Отключаем обработчик отпускания клавиши "Ctrl".
+				DGV.KeyUp -= DataGridView1_KeyUp;
+
+				// Отключаем событие клика по ячейкам датагрида.
+				DGV.CellClick -= SelectRow;
+			}
+		}
+
+		#region Подсветка строки
+
+		/// <summary>
+		/// Флаг зажатой клавиши "Ctrl".
+		/// </summary>
+		private bool FlagCtrl = false;
+
+		/// <summary>
+		/// Обработчик выделения строки датагрида.
+		/// </summary>
+		public void SelectRow(object sender, DataGridViewCellEventArgs e)
+		{
+			try
+			{
+				// Очищаем все выделенные ячейки.
+				DGV.ClearSelection();
+
+				// Если клавиша "Ctrl" в 
+				// данный момент не зажата.
+				if (!FlagCtrl)
+				{
+					// Делаем выделение всю строку по заданному индексу.
+					DGV.Rows[DGV.CurrentRow.Index].Selected = true;
+				}
+				else
+				{
+					// Выделяем ячейку датагрида.
+					DGV.Rows[DGV.CurrentRow.Index].Cells[DGV.CurrentCell.ColumnIndex].Selected = true;
+				}
+			}
+			catch (NullReferenceException) { }
+		}
+
+		private void DataGridView1_KeyUp(object sender, KeyEventArgs e)
+		{
+			FlagCtrl = e.Control;
+		}
+
+		private void DataGridView1_KeyDown(object sender, KeyEventArgs e)
+		{
+			FlagCtrl = e.Control;
+		}
+
+		#endregion
+	}
+}
