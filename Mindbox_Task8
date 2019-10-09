@@ -1,0 +1,105 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace CircleSquare
+{
+	public abstract class Figure
+	{
+		public abstract string Square();
+	}
+
+	// Класс треугольник.
+	public class Triangle : Figure
+	{
+		// Стороны треугольника.
+		private double a, b, c; 
+
+		// Конструктор.
+		public Triangle(double a, 
+			double b, double c)
+		{
+			this.a = a < 0 ? -a : a;
+			this.b = b < 0 ? -b : b;
+			this.c = c < 0 ? -c : c;
+		}
+
+		// Свойства.
+		public double A
+		{
+			get { return a; }
+		}
+		public double B
+		{
+			get { return b; }
+		}
+		public double C
+		{
+			get { return c; }
+		}
+
+		// Метод для вычисления площади треугольника.
+		public override string Square()
+		{
+			double temp = (a + b + c) / 2;
+
+			return Math.Sqrt(temp * (temp - a) * (temp - b) * (temp - c)).ToString();
+		}
+
+		// Определяем, является ли
+		// треугольник прямоугольным.
+		public bool IsRightTriangle()
+		{
+			// Формируем массив из значений сторон треугольника.
+			double[] mass = { a, b, c };
+
+			// С помощью Linq запроса сортируем так, 
+			// чтобы гипутинуза стала [0] элементом.
+			var orderedNumbers = from i in mass
+								 orderby i descending
+								 select i;
+
+			List<double> newMass = new List<double>();
+
+			// Записываем результаты сортировки в коллекцию.
+			foreach (int i in orderedNumbers)
+				newMass.Add(i);
+
+			// По теореме Пифагора определяем, является ли треугольник прямоугольным
+			// по формуле где квадрат гипутенузы равен сумме квадратов катетов, а значит
+			// разница квадрата гипутинузы и суммы квадратов катетов должна быть равна 0.
+			double rezult = Math.Pow(newMass[0], 2) -
+				(Math.Pow(newMass[1], 2) + Math.Pow(newMass[2], 2));
+
+			// Если результат равен 0, значит 
+			// треугольник является прямоугольным.
+			return rezult == 0;
+		}
+	}
+
+	// Класс круг.
+	public class Circle : Figure
+	{
+		// Радиус.
+		private double r;
+
+		// Конструктор.
+		public Circle(double r)
+		{
+			this.r = r < 0 ? -r : r;
+		}
+
+		// Свойство.
+		public double R
+		{
+			get { return r; }
+		}
+
+		// Метод для вычисления площади треугольника.
+		public override string Square()
+		{
+			return (Math.PI * Math.Pow(r, 2)).ToString();
+		}
+	}
+}
