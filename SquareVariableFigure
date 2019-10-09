@@ -1,0 +1,217 @@
+    using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;    
+    namespace VariableFigureSquare
+{
+    // Класс описывает каждую 
+    // координатную точку в отдельности.
+    public class Element
+    {
+        // Поля.
+        private double x, y;
+
+        // Конструктор.
+        public Element(double x, double y)
+        {
+            this.x = x;
+            this.y = y;
+        }
+
+        // Свойства.
+        public double X { get { return x; } }
+        public double Y { get { return y; } }
+
+        public static Element operator -(Element p1, Element p2)
+        {
+            return new Element(p2.X - p1.X, p2.Y - p1.Y);
+        }
+
+    // Класс координат.
+    public class Point
+    {
+        // Коллекция координатных точек.
+        List<Element> points = new List<Element>();
+
+        TriangleSquare instance = null;
+
+        // Добавляем координаты точки.
+        public void PointAdd(double x, double y)
+        {
+            // Создаём экземпляр класса новой координаты.
+            Element newMass = new Element(x, y);
+
+            // Проверка на наличие данной точки.
+            if (EqualsThis(newMass))
+            {
+                points.Add(newMass);
+            }
+            else
+            {
+                MessageBox.Show("Такая точка уже задана!");
+            }
+        }
+
+        // Удаление координаты.
+        public void PointRemoveAt(int index)
+        {
+            if (index >= 0)
+                points.RemoveAt(index);
+            else
+                MessageBox.Show("Вы не выбрали координату для удаления!");
+        }
+
+        // Метод проверки уникальности координаты.
+        public bool EqualsThis(Element instance)
+        {
+            for (int i = 0; i < points.Count; i++)
+            {
+                if (points[i].X == instance.X &&
+                    points[i].Y == instance.Y)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        // Индексатор.
+        public Element this[int index]
+        {
+            get { return points[index]; }
+        }
+
+        // Выводим список точек в Listbox.
+        public void InputPointsToListBox(ListBox LB)
+        {
+            // Удаляем все данные.
+            LB.Items.Clear();
+
+            for (int i = 0; i < points.Count; i++)
+            {
+                LB.Items.Add(string.Format("    X:{0},        Y:{1}",
+                    points[i].X, points[i].Y));
+            }
+        }
+
+        public string CalcSquare()
+        {
+            // Если не был создан экземпляр 
+            // класса рассчёта площади фигуры 
+            // методом треугольников.
+            if (instance == null)
+                instance = new TriangleSquare(points[0]);
+
+            double Square = 0;
+
+            for (int i = 1; i < points.Count - 1; i++)
+            {
+                Square += instance.CalcSquare(points[i], points[i + 1]);
+            }
+
+            instance.StartAngle = true;
+
+            return Square.ToString();
+        }
+    }
+    
+        public class TriangleSquare
+    {
+        // Массив заданных координат.
+        Element pointsStart;
+
+        // Проверка, был ли вычислен угол между
+        // первым вектором и вертикальным.
+        private bool startAngle = true;
+
+        // Свойство.
+        public bool StartAngle
+        {
+            get { return startAngle; }
+            set { startAngle = value; }
+        }
+
+        private double AngleSt = 0;
+
+        // Конструктор.
+        public TriangleSquare(Element pointsStart)
+        {
+            this.pointsStart = pointsStart;
+        }
+
+        public double CalcSquare(Element nextPoint1, Element nextPoint2)
+        {
+            if (startAngle)
+            {
+                AngleSt = 0;
+
+                startAngle = false;
+            }
+
+            double AB, BC, CA, P, S;
+
+            // Вычисляем длинну отрезка AB.
+            AB = Math.Sqrt(Math.Pow(pointsStart.X - nextPoint1.X, 2) 
+                + Math.Pow(pointsStart.Y - nextPoint1.Y, 2));
+
+            // Вычисляем длину отрезка ВС.
+            BC = Math.Sqrt(Math.Pow(nextPoint1.X - nextPoint2.X, 2)
+                + Math.Pow(nextPoint1.Y - nextPoint2.Y, 2));
+
+            // Вычисляем длину отрезка CA.
+            CA = Math.Sqrt(Math.Pow(nextPoint2.X - pointsStart.X, 2)
+                + Math.Pow(nextPoint2.Y - pointsStart.Y, 2));
+
+            // Вычисляем полупериметр треугольника.
+            P = (AB + BC + CA) / 2;
+
+            // Вычисляем площадь треугольника по формуле Герона.
+            S = Math.Sqrt(P * (P - AB) * (P - BC) * (P - CA));
+
+            // Находим вектора.
+            Element vect1 = pointsStart - nextPoint1;
+            Element vect2 = nextPoint1 - nextPoint2;
+
+            // По часовой стрелке = True.
+            // Против часовой стрелки = False.
+            bool hourHand;
+
+            // Вычисляем угол между векторами.
+            double angle = AngleCalcVect(vect1, vect2);
+
+            if (AngleSt > angle)
+                hourHand = false;
+            else
+                hourHand = true;
+
+            // Задаём новую вертикаль.
+            AngleSt = angle;
+
+            return (hourHand ? S : -S);
+        }
+
+        // Метод вычисляет угол между векторами.
+        private double AngleCalcVect(Element vect1, Element vect2)
+        {
+            // Вычисляем косинус угла между векторами.
+             double vectA_B = vect1.X * vect2.X + vect1.Y * vect2.Y;
+            
+             double moduleVectA = Math.Sqrt(Math.Pow(vect1.X, 2) + Math.Pow(vect1.Y, 2));
+            
+             double moduleVectB = Math.Sqrt(Math.Pow(vect2.X, 2) + Math.Pow(vect2.Y, 2));
+            
+             double COS = vectA_B / (moduleVectA * moduleVectB);
+            
+             // Получаем угол, косинус которого
+             // равен передаваемому параметру.
+             double angleRad = Math.Acos(COS);
+            
+             // Переводим радианы в градусы.
+             return angleRad * (180 / Math.PI);
+        }
+    }
+    
+}
